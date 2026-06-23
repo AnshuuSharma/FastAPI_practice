@@ -27,7 +27,7 @@ def create_user(username:str,password:str):
     return {"message":f"user : {username} with id : {current_id} created successfully "}
 
 @app.get("/get_user")
-def get_user(user_id:str):
+def get_user(user_id:int):
     if user_id in fake_db:
         return fake_db[user_id]
     else:
@@ -35,7 +35,7 @@ def get_user(user_id:str):
 
 
 @app.put("/modify/")
-def modify_user(user_id:str, username:str, password:str):
+def modify_user(user_id:int, username:str, password:str):
 
    if user_id in fake_db.keys():
        fake_db[user_id]["username"]=username
@@ -45,4 +45,10 @@ def modify_user(user_id:str, username:str, password:str):
        return{"error":"user not found"}
 
 
-
+@app.delete("/delete/{user_id}")
+def delete_user(user_id:int):
+    if user_id in fake_db:
+        del fake_db[user_id]
+        return {"messsage":"user deleted succesfully"}
+    else:
+        return {"user not found"}
