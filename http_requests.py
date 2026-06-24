@@ -1,37 +1,45 @@
-from fastapi import FastAPI
+from fastapi import FastAPI , HTTPException
+from pydantic import BaseModel
 
 app=FastAPI()
 
 fake_db={}
 next_id=1
 
+
+class CreateUser(BaseModel):
+    username:str
+    password:str
+
 @app.get("/")
 def home():
     return {"message":"Hello , welcome to the home page"}
 
 @app.post("/users")
-def create_user(username:str,password:str):
+def create_user(user:CreateUser):
     global next_id
     for user in fake_db.values():
-        if user["username"]==username:
-            return{"error":"user already exists"}
-        
+        if user["username"]==user.username:
+            raise HTTPException(
+                status_code=400,
+                detail="user already exists"
+            )
     
     fake_db[next_id]={
-        "username":username,
-        "password":password
+        "username":user.username,
+        "password":user.password
     }
     current_id=next_id
     next_id+=1
     
-    return {"message":f"user : {username} with id : {current_id} created successfully "}
+    return {"message":f"user : {user.username} with id : {current_id} created successfully "}
 
 @app.get("/get_user")
 def get_user(user_id:int):
     if user_id in fake_db:
         return fake_db[user_id]
     else:
-        return {"error":"user doesnt exists"}
+        raise HTTPException(status_code=404, detail="user not found")
 
 
 @app.put("/modify/")
@@ -42,7 +50,7 @@ def modify_user(user_id:int, username:str, password:str):
        fake_db[user_id]["password"]=password
        return{"modified successfully"}
    else:
-       return{"error":"user not found"}
+       raise HTTPException(status_code=404, detail="user not found")
 
 
 @app.delete("/delete/{user_id}")
@@ -51,4 +59,4 @@ def delete_user(user_id:int):
         del fake_db[user_id]
         return {"messsage":"user deleted succesfully"}
     else:
-        return {"user not found"}
+        raise HTTPException(status_code=404, detail="user not found")
