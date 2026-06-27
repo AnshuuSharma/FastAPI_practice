@@ -1,6 +1,6 @@
 from fastapi import FastAPI , HTTPException
 from pydantic import BaseModel, Field
-from typing import Annotated, List, Dict, Optional
+from typing import Annotated, List, Dict, Optional 
 
 
 app=FastAPI()
@@ -12,6 +12,7 @@ next_id=1
 class CreateUser(BaseModel):
     username:str = Field(max_length=50)
     password:str = Field(min_length=8)
+    age:Optional[int]=Field(default=18)
 
 @app.get("/")
 def home():
