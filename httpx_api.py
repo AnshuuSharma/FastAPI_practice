@@ -20,3 +20,14 @@ async def get_user_byId(userId:int):
     response.raise_for_status()
 
     return response.json()
+
+@app.post("/user/data")
+async def create_post():
+    async with httpx.AsyncClient() as client:
+        response=await client.post("https://jsonplaceholder.typicode.com/posts", json={
+            "userId":10,"id":101,"title":"hello world","body":"quia sjhfoh suscipit\nsuscipit  consequuntur et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
+        })
+
+        response.raise_for_status()
+
+    return response.json()
