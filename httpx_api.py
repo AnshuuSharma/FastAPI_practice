@@ -43,3 +43,14 @@ async def update_post(id:int):
         })
         response.raise_for_status()
     return response.json()
+
+@app.patch("/posts/{id}")
+async def update_using_patch(id:int):
+    async with httpx.AsyncClient() as client:
+        response=await client.patch(f"https://jsonplaceholder.typicode.com/posts/{id}", 
+            json={"title":"updated title"}
+                
+                )
+        response.raise_for_status()
+    return response.json()
+
