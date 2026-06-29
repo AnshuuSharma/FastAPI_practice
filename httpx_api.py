@@ -31,3 +31,15 @@ async def create_post():
         response.raise_for_status()
 
     return response.json()
+
+@app.put("/update")
+async def update_post(id:int):
+    async with httpx.AsyncClient() as client:
+        response=await client.put(f"https://jsonplaceholder.typicode.com/posts/{id}", 
+            json={
+                "userId": 1,
+                "title": "New Title",
+                "body": "New Body"
+        })
+        response.raise_for_status()
+    return response.json()
