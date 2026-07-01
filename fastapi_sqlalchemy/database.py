@@ -16,3 +16,14 @@ SessionLocal=sessionmaker(
 )
 
 Base=declarative_base()
+
+def get_db():
+    db=SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Request starts → SessionLocal() creates a new Session.
+# Request ends → db.close() closes it.
+# If we don't close it → database connections remain open.
