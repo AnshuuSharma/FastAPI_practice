@@ -28,4 +28,9 @@ def create_users(user:UserCreate, db:session=Depends(get_db)):
 
     return new_user
 
+@app.get("/show")
+def get_users(db:session=Depends(get_db)):
+    users=db.query(models.User).all()
+    return users
+
 
