@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import session
 
 from database import engine, Base, get_db
@@ -32,5 +32,24 @@ def create_users(user:UserCreate, db:session=Depends(get_db)):
 def get_users(db:session=Depends(get_db)):
     users=db.query(models.User).all()
     return users
+
+@app.put("/users/{user_id}")
+def update_user(
+    user_id: int,
+    user: UserCreate,
+    db: session = Depends(get_db)
+):
+    existing_user = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if existing_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    existing_user.name = user.name
+    existing_user.age = user.age
+
+    db.commit()
+    db.refresh(existing_user)
+
+    return existing_user
 
 
