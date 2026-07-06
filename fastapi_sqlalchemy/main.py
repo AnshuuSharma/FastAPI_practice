@@ -52,4 +52,17 @@ def update_user(
 
     return existing_user
 
+@app.delete("/remove/{user_id}")
+def delete_user(
+    user_id:int,
+    db:session=Depends(get_db)
+):
+    user_exists=db.query(models.user).filter(models.user.id==user_id).first()
+    if user_exists is None:
+        raise HTTPException(status_code=404,detail="user doesn't exixts")
+    
+    db.delete(user_exists)
+    db.commit()
+
+    return {"message":f"user with id : {id} deleted succesfully "}
 
