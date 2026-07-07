@@ -15,6 +15,10 @@ class UserCreate(BaseModel):
     name:str
     age:int
 
+class UserUpdate(BaseModel):
+    name: str | None = None
+    age: int | None = None
+
 @app.post("/users")
 def create_users(user:UserCreate, db:session=Depends(get_db)):
     new_user=models.User(
@@ -48,6 +52,28 @@ def update_user(
     existing_user.age = user.age
 
     db.commit()
+    db.refresh(existing_user)
+
+    return existing_user
+
+@app.patch("/users/{user_id}")
+def update_user(
+    user_id: int,
+    user: UserUpdate,
+    db: Session = Depends(get_db)
+):
+    existing_user = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if existing_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.name is not None:
+        existing_user.name = user.name
+
+    if user.age is not None:
+        existing_user.age = user.age
+    db.commit()
+
     db.refresh(existing_user)
 
     return existing_user
