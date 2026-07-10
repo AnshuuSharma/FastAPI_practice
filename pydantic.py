@@ -26,16 +26,16 @@ class Developer(basemodel):
 class Person(basemodel):
     email:emailstr
 
-@field_validator('email')
-@classmethod
-def email_validator(cls,value):
-    valid_domains=['gmail.com']
-    domain_name=value.split('@')[1]
+    @field_validator('email')
+    @classmethod
+    def email_validator(cls,value):
+        valid_domains=['gmail.com']
+        domain_name=value.split('@')[1]
 
 
-    if domain_name not in valid_domains:
-        raise ValueError('not a valid domain')
-    return value
+        if domain_name not in valid_domains:
+            raise ValueError('not a valid domain')
+        return value
 
 
 
