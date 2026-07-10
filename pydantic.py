@@ -1,5 +1,6 @@
 from pydantic import basemodel, Field, emailstr, anyurl
-from typing import list, Dict, Optional, Annotated
+from typing import list, Dict, Optional, Annotated , field_validator
+
 
 class Developer(basemodel):
     name:str=Field(max_length=50),
@@ -21,6 +22,20 @@ class Developer(basemodel):
     github:anyurl
     weight:Annotated[float,Field(gt=0,strict=True)]
 
+
+class Person(basemodel):
+    email:emailstr
+
+@field_validator('email')
+@classmethod
+def email_validator(cls,value):
+    valid_domains=['gmail.com']
+    domain_name=value.split('@')[1]
+
+
+    if domain_name not in valid_domains:
+        raise ValueError('not a valid domain')
+    return value
 
 
 
