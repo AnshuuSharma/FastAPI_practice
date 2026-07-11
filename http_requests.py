@@ -1,5 +1,5 @@
 from fastapi import FastAPI , HTTPException
-from pydantic import BaseModel, Field
+from pydantic_practice import BaseModel, Field
 from typing import Annotated, List, Dict, Optional 
 
 

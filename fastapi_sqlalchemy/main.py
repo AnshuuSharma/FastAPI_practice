@@ -5,7 +5,7 @@ from database import engine, Base, get_db
 import models
 
 
-from pydantic import BaseModel
+from pydantic_practice import BaseModel
 
 app=FastAPI()
 
