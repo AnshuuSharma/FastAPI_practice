@@ -108,3 +108,69 @@ def apply_discount(discount:ApplyDiscountReq,order_id:int=Path(...,gt=0)):
     }
     
 
+# Challenge: The "Employee Leave Request" API
+# Scenario: You're building an endpoint for an HR system where employees submit leave requests, and the system checks eligibility and returns a decision.
+# Your Task:
+# Write a POST /employees/{employee_id}/leave-request endpoint that meets these requirements:
+
+# Path Parameter: employee_id (must be a positive integer greater than 0)
+# Request Body: A JSON object with:
+
+# leave_type (string, must be one of: "sick", "casual", "earned") — no need to use Enum, just validate manually
+# start_date (string, format "YYYY-MM-DD")
+# end_date (string, format "YYYY-MM-DD")
+# reason (string, minimum 10 characters)
+# If employee_id is greater than 500, raise HTTP 404 Not Found with detail "Employee not found".
+# If leave_type is not one of the three allowed values, raise HTTP 400 Bad Request with detail "Invalid leave type".
+# Calculate total_days = number of days between start_date and end_date (inclusive of both dates).
+# If total_days is greater than 15, raise HTTP 400 Bad Request with detail "Leave duration exceeds maximum allowed limit".
+# If everything is valid, return 200 OK:
+
+# json{
+#   "employee_id": 12,
+#   "leave_type": "sick",
+#   "total_days": 4,
+#   "status": "approved"
+# }
+
+from fastapi import FastAPI, Path, HTTPException
+from pydantic import BaseModel, BeforeValidator, Field
+from typing import Literal, Annotated
+from datetime import datetime,date
+
+
+def DateFormat(value:str) ->date:
+    return datetime.strptime(value,"%Y-%m-%d").date()
+
+FormatDate=Annotated[date,BeforeValidator(DateFormat)]
+
+class LeaveReq(BaseModel):
+    leave_type:Literal["sick","casual","earned"] 
+    start_date:FormatDate
+    end_date:FormatDate
+    reason:str=Field(min_length=10)
+
+
+app=FastAPI()
+
+@app.post("/employees/{employee_id}/leave-request", status_code=200)
+def leave_approval(leave:LeaveReq,employee_id:int=Path(...,gt=0)):
+    if employee_id>500:
+        raise HTTPException(status_code=404,detail="employee not found")
+    
+    total_days=leave.end_date-leave.start_date
+    total_days=total_days.days+1
+
+    if total_days>15:
+        raise HTTPException(status_code=400,detail="Leave duration exceeds maximum allowed limit")
+    
+    return{
+        "employee_id":employee_id,
+        "leave_type":leave.leave_type,
+        "total_days":total_days,
+        "status":"approved"
+    }
+    
+
+
+
