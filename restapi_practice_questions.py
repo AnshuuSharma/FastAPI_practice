@@ -171,6 +171,82 @@ def leave_approval(leave:LeaveReq,employee_id:int=Path(...,gt=0)):
         "status":"approved"
     }
     
+# Your Task:
+# Implement these three endpoints for managing tasks (assume an in-memory Python dict tasks_db = {} as your "database", where key = task_id and value = task details):
+# 1. POST /tasks
+
+# Request body: title (string, min 3 chars), priority (string, one of "low", "medium", "high")
+# Auto-generate a task_id (just use len(tasks_db) + 1 for simplicity)
+# Save it into tasks_db with a default status of "pending"
+# Return 201 Created with the full task object (including task_id)
+
+# 2. GET /tasks/{task_id}
+
+# If task_id doesn't exist in tasks_db, raise 404 Not Found with detail "Task not found"
+# Otherwise return the task, 200 OK
+
+# 3. PUT /tasks/{task_id}/status
+
+# Request body: status (string, must be one of "pending", "in_progress", "completed")
+# If task_id doesn't exist, raise 404 Not Found
+# Update the task's status in place in tasks_db
+# Return the updated task, 200 OK
+
+from fastapi import FastAPI, status, HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from typing import Literal
+
+app=FastAPI()
+
+tasks_db={}
+
+class TaskReq(BaseModel):
+    title:str=Field(min_length=3)
+    priority:Literal["low","medium","high"]
+
+class UpdateReq(BaseModel):
+    status:Literal["pending","in_progress","completed"]
 
 
+@app.post("/tasks")
+def create_task(task:TaskReq):
+    task_id=len(tasks_db)+1
 
+    tasks_db[task_id]={
+        "task_id":task_id, 
+        "title":task.title,
+        "priority":task.priority,
+        "status":"pending"
+    }
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=tasks_db[task_id]
+    )
+
+@app.get("/tasks/{task_id}")
+def get_tasks(task_id:int):
+    if task_id not in tasks_db:
+        raise HTTPException(status_code=404, detail="task not found")
+    
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=tasks_db[task_id]
+    )
+
+
+@app.put("/tasks/{task_id}/status")
+def update_task(task_id:int, get_status:UpdateReq):
+    if task_id not in tasks_db:
+        raise HTTPException(status_code=404,detail="task not found")
+    
+    tasks_db[task_id]["status"]=get_status.status
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=tasks_db[task_id]
+    )
+
+
+    
