@@ -250,3 +250,63 @@ def update_task(task_id:int, get_status:UpdateReq):
 
 
     
+# Challenge: The "GitHub Repo Filter" API
+# Scenario: You're building an endpoint that fetches a GitHub user's public repositories and returns only the ones matching certain criteria — a common real-world pattern (call external API → filter/transform → return your own shape).
+# Your Task:
+# Write a GET /github/{username}/popular-repos endpoint that:
+
+# Path Parameter: username (string)
+# Query Parameter: min_stars (int, default 10) — only return repos with stargazers_count >= min_stars
+
+# Logic:
+
+# Call the GitHub public API: https://api.github.com/users/{username}/repos using the requests (or httpx) library. This returns a JSON array of repo objects (each has fields like name, stargazers_count, language, html_url, etc.)
+# If the GitHub API returns a 404 (user doesn't exist), raise your own HTTPException with 404 and detail "GitHub user not found".
+# Filter the repos to only those where stargazers_count >= min_stars.
+# Sort the filtered repos by stargazers_count in descending order.
+# Return a JSON response shaped like:
+
+# json{
+#   "username": "torvalds",
+#   "total_matching_repos": 3,
+#   "repos": [
+#     {"name": "linux", "stars": 190000, "language": "C", "url": "https://github.com/torvalds/linux"}
+#   ]
+# }
+
+from fastapi import FastAPI, HTTPException, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+import httpx
+
+app=FastAPI()
+
+class UserReq(BaseModel):
+    name:str
+
+
+@app.get("/github/{username}/popular-repos")
+async def get_repos(username:str, min_stars:int=10):
+    try:
+        async with httpx.AsyncClient as client:
+            response=client.get(f"https://api.github.com/users/{user.name}/repos")
+            response.raise_for_status()
+
+            result=[]
+
+            for obj in response:
+                if obj["stargaze"]>=min_stars:
+                    result.append(obj)
+
+            return JSONResponse(
+                content={
+                    "username":username,
+                    "total_matching_Records":len(result),
+                    "repos":result
+            }
+        )
+    except HTTPException as e:
+        return {"error":e}
+
+
+
