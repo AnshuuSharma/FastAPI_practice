@@ -288,25 +288,32 @@ class UserReq(BaseModel):
 @app.get("/github/{username}/popular-repos")
 async def get_repos(username:str, min_stars:int=10):
     try:
-        async with httpx.AsyncClient as client:
-            response=client.get(f"https://api.github.com/users/{user.name}/repos")
+        async with httpx.AsyncClient() as client:
+            response=await client.get(f"https://api.github.com/users/{username}/repos")
             response.raise_for_status()
+
+            data=response.json()
 
             result=[]
 
-            for obj in response:
-                if obj["stargaze"]>=min_stars:
+            for obj in data:
+                if obj["stargaze_count"]>=min_stars:
                     result.append(obj)
 
             return JSONResponse(
                 content={
                     "username":username,
                     "total_matching_Records":len(result),
-                    "repos":result
+                    "repos":sorted(result,key=lambda repo:repo["stargaze_count"],reverse=True)
             }
         )
     except HTTPException as e:
-        return {"error":e}
+        if e.response.status_code==404:
+            raise HTTPException(status_code=404,detail="Github user not found")
+        raise HTTPException(status_code=502,detail="error contacting github")
+
+
+        
 
 
 
