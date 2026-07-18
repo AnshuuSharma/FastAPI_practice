@@ -317,3 +317,108 @@ async def get_repos(username:str, min_stars:int=10):
 
 
 
+# Challenge : Weather Aggregator API
+# Scenario
+
+# You're building the backend for a travel application.
+
+# Instead of exposing the raw weather API response, your backend should fetch the data, extract only what's needed, and return a clean response.
+
+# Your Task
+
+# Create
+
+# GET /weather/{city}
+# Path Parameter
+# city: str
+# Query Parameter
+# unit: str = "celsius"
+
+# Allowed values:
+
+# celsius
+# fahrenheit
+
+# If anything else is passed, return 400 Bad Request.
+
+# Use this endpoint:
+
+# https://wttr.in/{city}?format=j1
+
+# If the API request fails (timeout, network issue), return
+# 503 Service Unavailable
+
+# with
+
+# "Weather service unavailable"
+# Extract only
+# city
+# current temperature
+# humidity
+# weather description
+# feels like temperature
+# If
+# unit=fahrenheit
+
+# return Fahrenheit values.
+
+# Otherwise return Celsius.
+
+# Expected Response
+# {
+#     "city": "London",
+#     "temperature": 21,
+#     "feels_like": 23,
+#     "humidity": 62,
+#     "description": "Partly cloudy",
+#     "unit": "celsius"
+# }
+
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import httpx
+
+app=FastAPI()
+
+class weatherResponse(BaseModel):
+    city:str
+    temperature:int
+    feels_like:int
+    humidity:int
+    description:str
+    unit:str
+
+@app.get("/weather/{city}",response_model=weatherResponse, status_code=200)
+async def get_details(city:str, unit:str="celsius"):
+    try:
+        if unit not in ["celsius","fahrenheit"]:
+          raise HTTPException(status_code=400,detail="Bad request : only celsius and fahrenheit unit is accepted")
+        async with httpx.AsyncClient(timeout=5.0) as client:
+         response=await client.get(f"https://wttr.in/{city}", params={"format":"j1"})
+
+         response.raise_for_status()
+
+         data=response.json()
+
+         if not data.get("current_condition"):
+            raise HTTPException(status_code=404, detail="City not found")
+         result={}
+         result["city"]=data["nearest_area"][0]["areaName"][0]["value"]
+         result["temperature"]=data["current_condition"][0]["temp_C"] if unit=="celsius" else data[ "current_condition"][0]["temp_F"]
+                
+         result["feels_like"]=data["current_condition"][0]["FeelsLikeC"] if unit=="celsius" else data[ "current_condition"][0]["FeelsLikeF"]
+         result["humidity"]=data["current_condition"][0]["humidity"]
+         result["description"]=data["current_condition"][0]["weatherDesc"][0]["value"]  
+         result["unit"]=unit
+
+         return result
+     
+    except httpx.RequestError:
+         raise HTTPException(status_code=503, detail="Weather service unavailable")
+
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=503,
+            detail="Weather service unavailable"
+        )
