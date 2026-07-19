@@ -422,3 +422,103 @@ async def get_details(city:str, unit:str="celsius"):
             status_code=503,
             detail="Weather service unavailable"
         )
+
+
+# Challenge 6: URL Shortener API
+# Scenario
+
+# You're building the backend for a URL shortening service (similar to Bitly).
+
+# The application stores mappings between a short code and the original URL.
+
+# Assume you're using SQLAlchemy ORM and already have a URL table with these columns:
+
+# id
+# original_url
+# short_code
+# created_at
+
+# You don't need to write the model or database setup—just the FastAPI endpoint.
+
+# Your Task
+
+# Create:
+
+# POST /shorten
+# Request Body
+# {
+#     "url": "https://fastapi.tiangolo.com/tutorial/"
+# }
+# Logic
+# Validate that the URL is a valid HTTP or HTTPS URL using Pydantic.
+# Generate a random 6-character alphanumeric short_code.
+
+# Example:
+
+# aB91xZ
+# Before saving, check if that short_code already exists in the database.
+# If it exists, generate another one.
+# Keep trying until you get a unique code.
+# Save the record in the database.
+# Return:
+# {
+#     "short_code": "aB91xZ",
+#     "short_url": "http://localhost:8000/aB91xZ",
+#     "original_url": "https://fastapi.tiangolo.com/tutorial/"
+# }
+
+
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel, AnyHttpUrl
+from sqlalchemy.orm import Session
+import random
+import string
+
+from database import get_db
+import models
+
+app = FastAPI()
+
+
+class ApiRequest(BaseModel):
+    url: AnyHttpUrl
+
+
+@app.post("/shorten", status_code=201)
+def url_shortener(request: ApiRequest, db: Session = Depends(get_db)):
+    characters = string.ascii_letters + string.digits
+
+    try:
+        while True:
+            short_code = "".join(random.choices(characters, k=6))
+
+            existing_code = (
+                db.query(models.URLs)
+                .filter(models.URLs.short_code == short_code)
+                .first()
+            )
+
+            if not existing_code:
+                break
+
+        new_url = models.URLs(
+            original_url=str(request.url),
+            short_code=short_code,
+        )
+
+        db.add(new_url)
+        db.commit()
+        db.refresh(new_url)
+
+        return {
+            "short_code": new_url.short_code,
+            "short_url": f"http://localhost:8000/{new_url.short_code}",
+            "original_url": new_url.original_url,
+        }
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create short URL",
+        )
