@@ -522,3 +522,91 @@ def url_shortener(request: ApiRequest, db: Session = Depends(get_db)):
             status_code=500,
             detail="Failed to create short URL",
         )
+
+
+
+# Challenge 7: Resume Upload API
+# Scenario
+
+# You're building the backend for an AI Resume Analyzer.
+
+# Users upload their resumes, and your API stores them before they are processed by an AI model.
+
+# Your Task
+
+# Create:
+
+# POST /upload-resume
+# Request
+
+# Accept:
+
+# A PDF file
+# Form field:
+# candidate_name (string)
+
+# Use:
+
+# UploadFile
+# File
+# Form
+# Logic
+# Accept only PDF files.
+# Reject files larger than 2 MB.
+# Save the file inside an uploads/ directory.
+# Rename the file as:
+# <candidate_name>.pdf
+
+# Example:
+
+# uploads/Anshu.pdf
+# If a file with the same name already exists, overwrite it.
+# Response
+# {
+#     "message": "Resume uploaded successfully",
+#     "filename": "Anshu.pdf",
+#     "size": 154321
+# }
+
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+import os
+
+app = FastAPI()
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+@app.post("/upload-resume")
+async def upload_resume(
+    candidate_name: str = Form(...),
+    file: UploadFile = File(...)
+):
+    # Validate content type
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are allowed"
+        )
+
+    content = await file.read()
+
+    # Validate size (2 MB)
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(
+            status_code=413,
+            detail="File size exceeds 2 MB"
+        )
+
+    filename = f"{candidate_name}.pdf"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    # Save (overwrites if exists)
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    return {
+        "message": "Resume uploaded successfully",
+        "filename": filename,
+        "size": len(content)
+    }
