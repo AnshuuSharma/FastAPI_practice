@@ -610,3 +610,134 @@ async def upload_resume(
         "filename": filename,
         "size": len(content)
     }
+
+
+# Challenge 8: Product Catalog API
+# Scenario
+
+# You're building an e-commerce backend.
+
+# The database already contains a Product table.
+
+# id
+# name
+# category
+# price
+# stock
+
+# You don't need to create the model.
+
+# Your Task
+
+# Create
+
+# GET /products
+# Query Parameters
+# Parameter	Type	Default
+# category	str	None
+# min_price	float	None
+# max_price	float	None
+# in_stock	bool	False
+# sort_by	str	"price"
+# order	str	"asc"
+# page	int	1
+# limit	int	10
+# Logic
+# If category is provided, return only that category.
+# If min_price is provided, return products whose price is >= min_price.
+# If max_price is provided, return products whose price is <= max_price.
+# If in_stock=true, return only products where stock > 0.
+# Allow sorting by:
+# price
+# name
+
+# If any other field is provided,
+
+# return
+
+# 400 Bad Request
+# Support
+# ?page=2&limit=5
+
+# using SQL pagination.
+# Expected Response
+# {
+#     "page": 2,
+#     "limit": 5,
+#     "total": 18,
+#     "products": [
+#         {
+#             "id": 12,
+#             "name": "MacBook Air",
+#             "price": 89000,
+#             "stock": 6
+#         }
+#     ]
+# }
+
+
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from database import get_db
+import models
+
+app = FastAPI()
+
+
+@app.get("/products")
+def get_products(
+    category: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    in_stock: bool = False,
+    sort_by: str = "price",
+    order: str = "asc",
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+):
+
+    query = db.query(models.Product)
+
+    # Filtering
+    if category:
+        query = query.filter(models.Product.category == category)
+
+    if min_price is not None:
+        query = query.filter(models.Product.price >= min_price)
+
+    if max_price is not None:
+        query = query.filter(models.Product.price <= max_price)
+
+    if in_stock:
+        query = query.filter(models.Product.stock > 0)
+
+    # Sorting
+    if sort_by not in ["price", "name"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid sort field"
+        )
+
+    column = getattr(models.Product, sort_by)
+
+    if order == "desc":
+        query = query.order_by(column.desc())
+    else:
+        query = query.order_by(column.asc())
+
+    total = query.count()
+
+    products = (
+        query
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "products": products
+    }
