@@ -741,3 +741,115 @@ def get_products(
         "total": total,
         "products": products
     }
+
+
+# Challenge 9: Random User API
+# Scenario
+
+# You're building a simple API for an HR application.
+
+# Instead of exposing the full response from an external API, your endpoint should return only the required fields.
+
+# Your Task
+
+# Create:
+
+# GET /random-user
+# Query Parameter
+# nationality (optional)
+
+# Example:
+
+# GET /random-user?nationality=us
+# External API
+
+# Call:
+
+# https://randomuser.me/api/
+
+# If nationality is provided:
+
+# https://randomuser.me/api/?nat=us
+# Logic
+# Fetch one random user using httpx.AsyncClient.
+# If the external API is unavailable, return
+# 503 Service Unavailable
+# {
+#     "detail": "Random User service unavailable"
+# }
+# Return only these fields:
+# Full Name
+# Email
+# Country
+# Age
+# Profile Picture
+# Expected Response
+# {
+#     "name": "John Smith",
+#     "email": "john.smith@example.com",
+#     "country": "United States",
+#     "age": 32,
+#     "profile_picture": "https://randomuser.me/api/portraits/men/75.jpg"
+# Bonus
+
+# Validate that nationality, if provided, is one of:
+
+# us
+# gb
+# in
+# ca
+# au
+
+# Otherwise return
+
+# 400 Bad Request
+
+
+from fastapi import FastAPI, HTTPException
+from typing import Literal
+import httpx
+
+app = FastAPI()
+
+
+@app.get("/random-user")
+async def get_random_user(
+    nationality: Literal["us", "gb", "in", "ca", "au"] | None = None
+):
+    params = {}
+
+    if nationality:
+        params["nat"] = nationality
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                "https://randomuser.me/api/",
+                params=params
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            user = data["results"][0]
+
+            return {
+                "name": f"{user['name']['first']} {user['name']['last']}",
+                "email": user["email"],
+                "country": user["location"]["country"],
+                "age": user["dob"]["age"],
+                "profile_picture": user["picture"]["large"],
+            }
+
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=503,
+            detail="Random User service unavailable"
+        )
+
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Random User service unavailable"
+        )
