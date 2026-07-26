@@ -853,3 +853,73 @@ async def get_random_user(
             status_code=503,
             detail="Random User service unavailable"
         )
+
+
+# Challenge 10: Quote of the Day API
+# Scenario
+
+# Your team is building a motivational dashboard for employees. Every time the frontend loads, it should display a random inspirational quote. Instead of letting the frontend directly call a third-party API, your backend should fetch the quote, extract only the necessary information, and return a simplified response. This way, if the external API changes in the future, only your backend needs to be updated.
+
+# Create a GET endpoint named /quote. Your endpoint should fetch a random quote from the following API:
+
+# https://dummyjson.com/quotes/random
+
+# The external API returns several fields, but your API should return only:
+
+# quote
+# author
+# length of the quote (number of characters)
+
+# If the external API is unavailable or the request fails, return:
+
+# 503 Service Unavailable
+
+# with the message:
+
+# {
+#     "detail": "Quote service unavailable"
+# }
+
+# The expected response from your API should look like:
+
+# {
+#     "quote": "The best way to predict the future is to create it.",
+#     "author": "Peter Drucker",
+#     "length": 47
+# }
+
+from fastapi import FastAPI, HTTPException
+import httpx
+
+app = FastAPI()
+
+
+@app.get("/quote")
+async def get_quote():
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                "https://dummyjson.com/quotes/random"
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            return {
+                "quote": data["quote"],
+                "author": data["author"],
+                "length": len(data["quote"])
+            }
+
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=503,
+            detail="Quote service unavailable"
+        )
+
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Quote service unavailable"
+        )
