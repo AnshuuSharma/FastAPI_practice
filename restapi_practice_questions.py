@@ -923,3 +923,86 @@ async def get_quote():
             status_code=503,
             detail="Quote service unavailable"
         )
+
+# Challenge 11: Currency Converter API
+
+# You are building a simple currency conversion service for a travel application. Instead of maintaining exchange rates yourself, your backend should fetch the latest exchange rates from an external API and calculate the converted amount. Create a GET endpoint /convert that accepts three query parameters: from_currency, to_currency, and amount. Use the external API:
+
+# https://open.er-api.com/v6/latest/{from_currency}
+
+# The API returns exchange rates for the given base currency. Your task is to retrieve the exchange rate for to_currency, multiply it by the given amount, and return a simplified JSON response containing the original amount, source currency, destination currency, exchange rate, and converted amount.
+
+# If the source or destination currency is invalid, return a 400 Bad Request with the message "Invalid currency code". If the external API is unavailable or the request fails, return 503 Service Unavailable with the message "Currency service unavailable".
+
+# For example, if the request is:
+
+# GET /convert?from_currency=USD&to_currency=INR&amount=100
+
+# Your response should look similar to:
+# {
+#     "from_currency": "USD",
+#     "to_currency": "INR",
+#     "amount": 100,
+#     "exchange_rate": 87.45,
+#     "converted_amount": 8745.0
+# }
+
+
+from fastapi import FastAPI, HTTPException
+import httpx
+
+app = FastAPI()
+
+
+@app.get("/convert")
+async def convert_currency(
+    from_currency: str,
+    to_currency: str,
+    amount: float
+):
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"https://open.er-api.com/v6/latest/{from_currency.upper()}"
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            if data.get("result") != "success":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid currency code"
+                )
+
+            rates = data["rates"]
+
+            if to_currency.upper() not in rates:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid currency code"
+                )
+
+            exchange_rate = rates[to_currency.upper()]
+            converted_amount = amount * exchange_rate
+
+            return {
+                "from_currency": from_currency.upper(),
+                "to_currency": to_currency.upper(),
+                "amount": amount,
+                "exchange_rate": exchange_rate,
+                "converted_amount": round(converted_amount, 2)
+            }
+
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=503,
+            detail="Currency service unavailable"
+        )
+
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Currency service unavailable"
+        )
