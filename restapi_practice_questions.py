@@ -1006,3 +1006,63 @@ async def convert_currency(
             status_code=503,
             detail="Currency service unavailable"
         )
+
+
+# Challenge 12: Age Predictor API
+
+# You are building a small utility service for a recruitment platform. The frontend sends a person's first name, and your backend should estimate their age using a public API. Instead of returning the complete response from the external service, your API should return only the information the frontend needs. Create a GET endpoint called /predict-age that accepts a query parameter named name. Use the external API:
+
+# https://api.agify.io/?name=<name>
+
+# The external API returns data similar to:
+
+# {
+#     "count": 15432,
+#     "name": "john",
+#     "age": 42
+# }
+
+# Your endpoint should return only:
+
+# {
+#     "name": "john",
+#     "predicted_age": 42,
+#     "message": "Estimated age generated successfully"
+# }
+
+from fastapi import FastAPI, HTTPException
+import httpx
+
+app = FastAPI()
+
+
+@app.get("/predict-age")
+async def predict_age(name: str):
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                "https://api.agify.io/",
+                params={"name": name}
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            return {
+                "name": data["name"],
+                "predicted_age": data["age"],
+                "message": "Estimated age generated successfully"
+            }
+
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=503,
+            detail="Age prediction service unavailable"
+        )
+
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Age prediction service unavailable"
+        )
