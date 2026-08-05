@@ -1066,3 +1066,61 @@ async def predict_age(name: str):
             status_code=503,
             detail="Age prediction service unavailable"
         )
+
+
+
+# Challenge 13
+
+# You are building a movie recommendation service for a streaming platform. Create a GET endpoint /movie/{title} that accepts a movie title as a path parameter and fetches its details from the OMDb API using the URL https://www.omdbapi.com/?t={title}&apikey=YOUR_API_KEY. If the movie exists, return only the movie's title, year, genre, IMDb rating, and director in a custom JSON response. If the movie is not found, return a 404 Not Found response with the message "Movie not found". If the external API cannot be reached or returns an error, return a 503 Service Unavailable response with the message "Movie service unavailable".
+
+# Note: Replace YOUR_API_KEY with your own OMDb API key.
+
+from fastapi import FastAPI, HTTPException
+import httpx
+
+app = FastAPI()
+
+API_KEY = "YOUR_API_KEY"
+
+
+@app.get("/movie/{title}")
+async def get_movie(title: str):
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                "https://www.omdbapi.com/",
+                params={
+                    "t": title,
+                    "apikey": API_KEY
+                }
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            if data.get("Response") == "False":
+                raise HTTPException(
+                    status_code=404,
+                    detail="Movie not found"
+                )
+
+            return {
+                "title": data["Title"],
+                "year": data["Year"],
+                "genre": data["Genre"],
+                "imdb_rating": data["imdbRating"],
+                "director": data["Director"]
+            }
+
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=503,
+            detail="Movie service unavailable"
+        )
+
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Movie service unavailable"
+        )
